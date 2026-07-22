@@ -1,5 +1,9 @@
 """세움터 건축물대장 API client (docs/02 §2.1.C).
 
+data.go.kr service: 국토교통부_건축HUB_건축물대장정보 서비스 1.0.0
+(BldRgstHubService — successor of the legacy BldRgstService_v2; same
+operations and parameters).
+
 getBrTitleInfo (표제부): building-level master — total area, approval date,
 structure, household count, floor counts. XML responses, PNU-component params.
 
@@ -15,7 +19,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 log = structlog.get_logger()
 
-TITLE_INFO_URL = "http://apis.data.go.kr/1613000/BldRgstService_v2/getBrTitleInfo"
+TITLE_INFO_URL = "https://apis.data.go.kr/1613000/BldRgstHubService/getBrTitleInfo"
 RATE_LIMIT_SLEEP_S = 0.05
 RESULT_OK = {"00", "000"}
 
