@@ -58,6 +58,14 @@ def test_to_transaction_cancelled(molit_fixture):
     assert tx.is_related_party is True  # 직거래
 
 
+def test_complex_id_prefers_apt_seq(molit_fixture):
+    """aptSeq present → stable MOLIT complex key; absent → name-based fallback."""
+    page = parse_apt_trade_response(molit_fixture("apt_trade_11680_202401.xml"))
+    with_seq, without_seq = page.items[0], page.items[1]
+    assert to_property(with_seq).complex_id == "KR-APT-11680-123"
+    assert to_property(without_seq).complex_id == "KR-11680-10800-역삼래미안"
+
+
 def test_to_property(molit_fixture):
     raw = _first(molit_fixture)
     prop = to_property(raw)

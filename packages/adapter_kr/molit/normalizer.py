@@ -108,7 +108,12 @@ def to_property(raw: RawAptTrade, ingested_at: datetime | None = None) -> Proper
         p for p in ["서울특별시", gu, raw.umd_nm, raw.road_nm, raw.bonbun.lstrip("0")] if p
     )
     normalized_addr, _ = normalize_address(original_addr)
-    complex_id = f"KR-{raw.sgg_cd}-{raw.umd_cd}-{raw.apt_nm}".replace(" ", "")
+    # aptSeq is MOLIT's stable complex key (e.g. "11680-381"); name-based fallback
+    # for older records that lack it
+    if raw.apt_seq.strip():
+        complex_id = f"KR-APT-{raw.apt_seq.strip()}"
+    else:
+        complex_id = f"KR-{raw.sgg_cd}-{raw.umd_cd}-{raw.apt_nm}".replace(" ", "")
 
     return Property(
         global_id=make_global_id("KR", canonical),

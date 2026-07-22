@@ -29,6 +29,7 @@ class RawAptTrade:
 
     sgg_cd: str  # 시군구코드 (5)
     umd_cd: str  # 읍면동코드
+    apt_seq: str  # MOLIT 단지 일련번호 (e.g. "11680-381") — stable complex key
     umd_nm: str  # 읍면동명
     land_cd: str  # 지번코드
     bonbun: str  # 본번
@@ -61,6 +62,7 @@ class AptTradePage:
 _FIELD_MAP = {
     "sggCd": "sgg_cd",
     "umdCd": "umd_cd",
+    "aptSeq": "apt_seq",
     "umdNm": "umd_nm",
     "landCd": "land_cd",
     "bonbun": "bonbun",
