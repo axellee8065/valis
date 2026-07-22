@@ -2,7 +2,8 @@
 
 국가중점데이터 (VWorld/국가공간정보포털) — 공동주택가격속성조회:
     https://api.vworld.kr/ned/data/getApartHousingPriceAttr
-    params: key (VWorld API key), pnu, stdrYear, format=json, numOfRows, pageNo
+    params: key (VWorld API key), domain (key 발급 시 등록한 서비스URL — REQUIRED,
+    없으면 INCORRECT_KEY), pnu, stdrYear, format=json, numOfRows, pageNo
 
 PNU (19-digit parcel number) is the join key and the preferred base for
 local_id_canonical v2 (docs/02 §5.1). Published annually (기준일 1월 1일).
@@ -38,10 +39,12 @@ class KongsiClient:
     def __init__(
         self,
         api_key: str,
+        api_domain: str = "",
         http: httpx.AsyncClient | None = None,
         base_url: str = KONGSI_BASE_URL,
     ):
         self._api_key = api_key
+        self._api_domain = api_domain
         self._http = http or httpx.AsyncClient(timeout=30.0)
         self._base_url = base_url
 
@@ -56,6 +59,8 @@ class KongsiClient:
     )
     async def _get(self, params: dict) -> dict:
         merged = {"key": self._api_key, "format": "json", **params}
+        if self._api_domain:  # VWorld rejects the key as INCORRECT_KEY without this
+            merged["domain"] = self._api_domain
         resp = await self._http.get(self._base_url, params=merged)
         if resp.status_code == 429:
             log.warning("kongsi_rate_limited", wait_s=60)

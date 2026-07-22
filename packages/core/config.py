@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     # Korea public data
     molit_api_key: str = ""
     kongsi_api_key: str = ""
+    # VWorld requires the service URL registered at key issuance as `domain` param
+    kongsi_api_domain: str = ""
     seum_api_key: str = ""
     seoul_open_data_key: str = ""
     bok_ecos_key: str = ""

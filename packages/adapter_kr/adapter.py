@@ -26,7 +26,9 @@ class KoreaAdapter(CountryAdapter):
     ):
         settings = get_settings()
         self._molit = molit_client or MolitClient(settings.molit_api_key)
-        self._kongsi = kongsi_client or KongsiClient(settings.kongsi_api_key)
+        self._kongsi = kongsi_client or KongsiClient(
+            settings.kongsi_api_key, api_domain=settings.kongsi_api_domain
+        )
         self._seum = seum_client or SeumClient(settings.seum_api_key)
         self._fx_provider = None  # set via set_fx_provider (FxProvider is callable)
 
