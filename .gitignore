@@ -13,9 +13,9 @@ htmlcov/
 .env.local
 *.log
 
-# ML artifacts
-models/
-reports/
+# ML artifacts (root-level only — packages/avm/models is source code)
+/models/
+/reports/
 data/raw/
 data/processed/
 *.parquet
