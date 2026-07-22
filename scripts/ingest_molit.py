@@ -41,47 +41,72 @@ def month_range(start: str, end: str) -> list[str]:
     return months
 
 
+BATCH_SIZE = 500  # rows per INSERT — keeps remote-DB round trips low
+
+
 async def ingest_month(
     client: MolitClient, session_factory, gu_code: str, ymd: str, fx: FxProvider | None = None
 ) -> dict:
+    """Fetch one district+month and upsert in batches.
+
+    Row-by-row upserts are ~2 round trips per record — unusable against a
+    remote DB (Railway proxy RTT × 400k records). Batched multi-VALUES
+    upserts cut it to ~4 statements per month.
+    """
     stats = {"fetched": 0, "cancelled": 0, "parse_errors": 0, "no_fx": 0}
+    props: dict[str, dict] = {}  # global_id → row (deduped within batch)
+    txs: dict[str, dict] = {}  # source_record_id → row (last wins)
+
+    try:
+        async for raw in client.fetch_apt_trades(gu_code, ymd):
+            now = datetime.now(UTC)
+            deal_date = f"{raw.deal_year}-{int(raw.deal_month):02d}-{int(raw.deal_day):02d}"
+            fx_rate = fx.rate_at(deal_date) if fx else None
+            if fx and fx_rate is None:
+                stats["no_fx"] += 1
+            tx = to_transaction(raw, fx_krw_usd=fx_rate, ingested_at=now)
+            prop = to_property(raw, ingested_at=now)
+
+            props[prop.global_id] = prop.model_dump(mode="json")
+            txs[tx.source_record_id] = tx.model_dump(mode="json")
+            stats["fetched"] += 1
+            stats["cancelled"] += int(tx.is_cancelled)
+    except MolitParseError as exc:
+        stats["parse_errors"] += 1
+        log.error("molit_parse_error", gu=gu_code, ymd=ymd, error=str(exc))
+
+    if not txs:
+        return stats
+
+    def chunks(rows: list[dict], size: int = BATCH_SIZE):
+        for i in range(0, len(rows), size):
+            yield rows[i : i + size]
+
     async with session_factory() as session:
-        try:
-            async for raw in client.fetch_apt_trades(gu_code, ymd):
-                now = datetime.now(UTC)
-                deal_date = f"{raw.deal_year}-{int(raw.deal_month):02d}-{int(raw.deal_day):02d}"
-                fx_rate = fx.rate_at(deal_date) if fx else None
-                if fx and fx_rate is None:
-                    stats["no_fx"] += 1
-                tx = to_transaction(raw, fx_krw_usd=fx_rate, ingested_at=now)
-                prop = to_property(raw, ingested_at=now)
+        for chunk in chunks(list(props.values())):
+            stmt = pg_insert(PropertyRow).values(chunk)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["global_id"],
+                set_={
+                    "updated_at": stmt.excluded.updated_at,
+                    "data_sources": stmt.excluded.data_sources,
+                },
+            )
+            await session.execute(stmt)
 
-                prop_values = prop.model_dump(mode="json")
-                prop_stmt = pg_insert(PropertyRow).values(**prop_values)
-                prop_stmt = prop_stmt.on_conflict_do_update(
-                    index_elements=["global_id"],
-                    set_={"updated_at": now, "data_sources": prop_values["data_sources"]},
-                )
-                await session.execute(prop_stmt)
-
-                tx_stmt = pg_insert(TransactionRow).values(**tx.model_dump(mode="json"))
-                # Re-reported records: latest wins on cancellation flags
-                tx_stmt = tx_stmt.on_conflict_do_update(
-                    index_elements=["source", "source_record_id"],
-                    set_={
-                        "is_cancelled": tx.is_cancelled,
-                        "cancelled_at": tx.cancelled_at,
-                        "registration_date": tx.registration_date,
-                        "ingested_at": now,
-                    },
-                )
-                await session.execute(tx_stmt)
-
-                stats["fetched"] += 1
-                stats["cancelled"] += int(tx.is_cancelled)
-        except MolitParseError as exc:
-            stats["parse_errors"] += 1
-            log.error("molit_parse_error", gu=gu_code, ymd=ymd, error=str(exc))
+        for chunk in chunks(list(txs.values())):
+            stmt = pg_insert(TransactionRow).values(chunk)
+            # Re-reported records: latest wins on cancellation flags
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["source", "source_record_id"],
+                set_={
+                    "is_cancelled": stmt.excluded.is_cancelled,
+                    "cancelled_at": stmt.excluded.cancelled_at,
+                    "registration_date": stmt.excluded.registration_date,
+                    "ingested_at": stmt.excluded.ingested_at,
+                },
+            )
+            await session.execute(stmt)
         await session.commit()
     return stats
 
