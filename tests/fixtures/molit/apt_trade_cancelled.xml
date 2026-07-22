@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+  <header>
+    <resultCode>000</resultCode>
+    <resultMsg>OK</resultMsg>
+  </header>
+  <body>
+    <items>
+      <item>
+        <sggCd>11680</sggCd>
+        <umdCd>10800</umdCd>
+        <umdNm>역삼동</umdNm>
+        <landCd>1</landCd>
+        <bonbun>0045</bonbun>
+        <bubun>0000</bubun>
+        <roadNm>테헤란로</roadNm>
+        <aptNm>역삼래미안</aptNm>
+        <aptDong>A</aptDong>
+        <floor>7</floor>
+        <excluUseAr>84.99</excluUseAr>
+        <dealAmount>130,000</dealAmount>
+        <dealYear>2024</dealYear>
+        <dealMonth>1</dealMonth>
+        <dealDay>5</dealDay>
+        <buildYear>2015</buildYear>
+        <cdealType>O</cdealType>
+        <cdealDay>24.01.20</cdealDay>
+        <dealingGbn>직거래</dealingGbn>
+        <rgstDate></rgstDate>
+      </item>
+    </items>
+    <numOfRows>1000</numOfRows>
+    <pageNo>1</pageNo>
+    <totalCount>1</totalCount>
+  </body>
+</response>

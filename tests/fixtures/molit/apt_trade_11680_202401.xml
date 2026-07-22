@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+  <header>
+    <resultCode>000</resultCode>
+    <resultMsg>OK</resultMsg>
+  </header>
+  <body>
+    <items>
+      <item>
+        <sggCd>11680</sggCd>
+        <umdCd>10800</umdCd>
+        <umdNm>역삼동</umdNm>
+        <landCd>1</landCd>
+        <bonbun>0045</bonbun>
+        <bubun>0000</bubun>
+        <roadNm>테헤란로</roadNm>
+        <aptNm>역삼래미안</aptNm>
+        <aptDong>A</aptDong>
+        <floor>12</floor>
+        <excluUseAr>84.99</excluUseAr>
+        <dealAmount>125,000</dealAmount>
+        <dealYear>2024</dealYear>
+        <dealMonth>1</dealMonth>
+        <dealDay>15</dealDay>
+        <buildYear>2015</buildYear>
+        <cdealType></cdealType>
+        <cdealDay></cdealDay>
+        <dealingGbn>중개거래</dealingGbn>
+        <rgstDate>24.02.20</rgstDate>
+        <estateAgentSggNm>서울 강남구</estateAgentSggNm>
+      </item>
+      <item>
+        <sggCd>11680</sggCd>
+        <umdCd>10800</umdCd>
+        <umdNm>역삼동</umdNm>
+        <landCd>1</landCd>
+        <bonbun>0045</bonbun>
+        <bubun>0000</bubun>
+        <roadNm>테헤란로</roadNm>
+        <aptNm>역삼래미안</aptNm>
+        <aptDong>B</aptDong>
+        <floor>3</floor>
+        <excluUseAr>59.84</excluUseAr>
+        <dealAmount>98,500</dealAmount>
+        <dealYear>2024</dealYear>
+        <dealMonth>1</dealMonth>
+        <dealDay>22</dealDay>
+        <buildYear>2015</buildYear>
+        <cdealType></cdealType>
+        <cdealDay></cdealDay>
+        <dealingGbn>중개거래</dealingGbn>
+        <rgstDate></rgstDate>
+        <estateAgentSggNm>서울 강남구</estateAgentSggNm>
+      </item>
+    </items>
+    <numOfRows>1000</numOfRows>
+    <pageNo>1</pageNo>
+    <totalCount>2</totalCount>
+  </body>
+</response>

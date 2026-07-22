@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+  <header>
+    <resultCode>00</resultCode>
+    <resultMsg>NORMAL SERVICE.</resultMsg>
+  </header>
+  <body>
+    <items>
+      <item>
+        <platPlc>서울특별시 강남구 역삼동 45</platPlc>
+        <bldNm>역삼래미안</bldNm>
+        <totArea>45230.55</totArea>
+        <useAprDay>20150320</useAprDay>
+        <mainPurpsCd>02001</mainPurpsCd>
+        <mainPurpsCdNm>아파트</mainPurpsCdNm>
+        <strctCd>21</strctCd>
+        <strctCdNm>철근콘크리트구조</strctCdNm>
+        <hhldCnt>320</hhldCnt>
+        <grndFlrCnt>25</grndFlrCnt>
+        <ugrndFlrCnt>3</ugrndFlrCnt>
+        <indrAutoUtcnt>350</indrAutoUtcnt>
+        <oudrAutoUtcnt>50</oudrAutoUtcnt>
+        <indrMechUtcnt>0</indrMechUtcnt>
+        <oudrMechUtcnt>0</oudrMechUtcnt>
+      </item>
+    </items>
+    <numOfRows>100</numOfRows>
+    <pageNo>1</pageNo>
+    <totalCount>1</totalCount>
+  </body>
+</response>
