@@ -1,10 +1,14 @@
-"""공동주택 공시가격 API client (docs/02 §2.1.B).
+"""공동주택가격 속성조회 API client (docs/02 §2.1.B).
 
-부동산공시가격알리미 open API via 공공데이터포털. JSON responses.
-Published annually (~April); PNU (19-digit parcel number) is the join key
-and the preferred base for local_id_canonical v2 (docs/02 §5.1).
+국가중점데이터 (VWorld/국가공간정보포털) — 공동주택가격속성조회:
+    https://api.vworld.kr/ned/data/getApartHousingPriceAttr
+    params: key (VWorld API key), pnu, stdrYear, format=json, numOfRows, pageNo
 
-Rate limit: ~10 req/s recommended, 5,000/day.
+PNU (19-digit parcel number) is the join key and the preferred base for
+local_id_canonical v2 (docs/02 §5.1). Published annually (기준일 1월 1일).
+
+KONGSI_API_KEY in .env holds the VWorld key (issued at vworld.kr, separate
+account from data.go.kr).
 """
 
 import asyncio
@@ -15,9 +19,8 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 log = structlog.get_logger()
 
-# 공공데이터포털 공동주택 공시가격 조회 서비스
-KONGSI_BASE_URL = "https://api.odcloud.kr/api/AptPubPriceService/v1/getAptPubPrice"
-RATE_LIMIT_SLEEP_S = 0.1  # 10 req/s
+KONGSI_BASE_URL = "https://api.vworld.kr/ned/data/getApartHousingPriceAttr"
+RATE_LIMIT_SLEEP_S = 0.1
 PAGE_SIZE = 100
 
 
@@ -52,42 +55,62 @@ class KongsiClient:
         reraise=True,
     )
     async def _get(self, params: dict) -> dict:
-        resp = await self._http.get(self._base_url, params={"serviceKey": self._api_key, **params})
+        merged = {"key": self._api_key, "format": "json", **params}
+        resp = await self._http.get(self._base_url, params=merged)
         if resp.status_code == 429:
             log.warning("kongsi_rate_limited", wait_s=60)
             await asyncio.sleep(60)
-            resp = await self._http.get(
-                self._base_url, params={"serviceKey": self._api_key, **params}
-            )
+            resp = await self._http.get(self._base_url, params=merged)
         resp.raise_for_status()
         return resp.json()
 
     async def fetch_by_pnu(self, pnu: str, year: int) -> list[dict]:
-        """All units' official prices for a parcel+year. Raw dicts, un-normalized."""
-        payload = await self._get(
-            {"pnu": pnu, "stdrYear": str(year), "numOfRows": PAGE_SIZE, "pageNo": 1}
-        )
-        return extract_items(payload)
-
-    async def fetch_page(self, sgg_cd: str, year: int, page_no: int = 1) -> list[dict]:
-        """Page through a district's official prices for bulk backfill."""
-        payload = await self._get(
-            {
-                "sggCd": sgg_cd,
-                "stdrYear": str(year),
-                "numOfRows": PAGE_SIZE,
-                "pageNo": page_no,
-            }
-        )
-        return extract_items(payload)
+        """All units' official prices for a parcel+year. Raw dicts, un-normalized.
+        Pages until exhausted (large complexes exceed one page)."""
+        items: list[dict] = []
+        page_no = 1
+        while True:
+            payload = await self._get(
+                {
+                    "pnu": pnu,
+                    "stdrYear": str(year),
+                    "numOfRows": PAGE_SIZE,
+                    "pageNo": page_no,
+                }
+            )
+            batch = extract_items(payload)
+            items.extend(batch)
+            if len(batch) < PAGE_SIZE:
+                break
+            page_no += 1
+            await asyncio.sleep(RATE_LIMIT_SLEEP_S)
+        return items
 
 
 def extract_items(payload: dict) -> list[dict]:
-    """Unwrap the data.go.kr JSON envelope; raises KongsiApiError on API errors."""
-    # Envelope variants: {"response": {"header": {...}, "body": {"items": ...}}}
-    # or odcloud style: {"data": [...], "currentCount": n}
-    if "data" in payload:
+    """Unwrap the response envelope; raises KongsiApiError on API errors.
+
+    Envelope variants handled:
+    - VWorld ned/data: {"apartHousingPrices": {"totalCount": n, "field": [...]}}
+    - VWorld error:    {"error": {"code": ..., "text": ...}} (or nested response)
+    - data.go.kr:      {"response": {"header": {...}, "body": {"items": ...}}}
+    - odcloud:         {"data": [...]}
+    """
+    if "error" in payload:
+        err = payload["error"]
+        if isinstance(err, dict):
+            raise KongsiApiError(f"{err.get('code')}: {err.get('text') or err.get('message')}")
+        raise KongsiApiError(str(err))
+
+    # VWorld ned/data style — the wrapper key varies by dataset; find "field"
+    for value in payload.values():
+        if isinstance(value, dict) and "field" in value:
+            field = value["field"]
+            return [field] if isinstance(field, dict) else list(field)
+
+    if "data" in payload:  # odcloud style
         return list(payload["data"])
+
     response = payload.get("response", {})
     header = response.get("header", {})
     code = str(header.get("resultCode", "")).strip()

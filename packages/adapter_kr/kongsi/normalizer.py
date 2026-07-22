@@ -1,7 +1,11 @@
 """공시가격 raw record → GovernmentValuation (docs/02 §2.1.B).
 
-Key raw fields: pnu (19자리), pblntfPc (공시가격, 원), pblntfDe (공시일자),
-stdrYear, sggNm/bjdongNm, bldNm/dongNm/hoNm.
+Key raw fields: pnu (19자리), pblntfPc (공시가격, 원), stdrYear,
+dongNm/hoNm (동·호), prvuseAr (전용면적).
+
+VWorld 속성조회 responses carry stdrYear but no 공시일자 field — the legal
+기준일 for 공동주택 공시가격 is January 1 of the assessment year, so we use
+that when pblntfDe is absent.
 """
 
 from datetime import UTC, date, datetime
@@ -66,9 +70,15 @@ def to_government_valuation(
     the assessment-date rate is always available by ingestion time.
     """
     price_krw = _clean_int(raw.get("pblntfPc"))
-    assessment_date = _parse_date(raw.get("pblntfDe"))
     year = raw.get("stdrYear")
-    assessment_year = _clean_int(year) if year else assessment_date.year
+    if raw.get("pblntfDe"):
+        assessment_date = _parse_date(raw.get("pblntfDe"))
+        assessment_year = _clean_int(year) if year else assessment_date.year
+    elif year:
+        assessment_year = _clean_int(year)
+        assessment_date = date(assessment_year, 1, 1)  # 공시 기준일
+    else:
+        raise KongsiRecordError("record has neither pblntfDe nor stdrYear")
 
     return GovernmentValuation(
         global_id=global_id,

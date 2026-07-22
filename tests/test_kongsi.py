@@ -16,6 +16,23 @@ GID = make_global_id("KR", "KR-11680-10800-1-0045-0000-A-12-8499")
 
 
 class TestExtractItems:
+    def test_vworld_style(self):
+        payload = {
+            "apartHousingPrices": {
+                "totalCount": "2",
+                "field": [{"pnu": "x"}, {"pnu": "y"}],
+            }
+        }
+        assert extract_items(payload) == [{"pnu": "x"}, {"pnu": "y"}]
+
+    def test_vworld_single_item_dict(self):
+        payload = {"apartHousingPrices": {"totalCount": "1", "field": {"pnu": "x"}}}
+        assert extract_items(payload) == [{"pnu": "x"}]
+
+    def test_vworld_error_raises(self):
+        with pytest.raises(KongsiApiError, match="INVALID_KEY"):
+            extract_items({"error": {"code": "INVALID_KEY", "text": "인증키 오류"}})
+
     def test_odcloud_style(self):
         assert extract_items({"data": [{"a": 1}], "currentCount": 1}) == [{"a": 1}]
 
@@ -89,5 +106,25 @@ class TestToGovernmentValuation:
 
     def test_bad_date_dead_letters(self):
         raw = {**self.RAW, "pblntfDe": "not-a-date"}
+        with pytest.raises(KongsiRecordError):
+            to_government_valuation(raw, GID, fx_krw_usd=Decimal("0.00072"))
+
+    def test_vworld_record_without_pblntf_de(self):
+        """VWorld 속성조회 has stdrYear only → assessment_date = Jan 1 (기준일)."""
+        raw = {
+            "pnu": "1168010800100450000",
+            "stdrYear": "2024",
+            "pblntfPc": "980000000",
+            "dongNm": "A",
+            "hoNm": "1201",
+            "prvuseAr": "84.99",
+        }
+        gv = to_government_valuation(raw, GID, fx_krw_usd=Decimal("0.00072"))
+        assert gv.assessment_year == 2024
+        assert gv.assessment_date == date(2024, 1, 1)
+        assert gv.value_original_amount == Decimal(980_000_000)
+
+    def test_record_without_any_year_dead_letters(self):
+        raw = {"pnu": "1168010800100450000", "pblntfPc": "980000000"}
         with pytest.raises(KongsiRecordError):
             to_government_valuation(raw, GID, fx_krw_usd=Decimal("0.00072"))
