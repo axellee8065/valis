@@ -33,6 +33,17 @@ class TestExtractItems:
         with pytest.raises(KongsiApiError, match="INVALID_KEY"):
             extract_items({"error": {"code": "INVALID_KEY", "text": "인증키 오류"}})
 
+    def test_vworld_nested_error_raises(self):
+        """Real INCORRECT_KEY shape observed live 2026-07-23."""
+        payload = {
+            "apartHousingPrices": {
+                "resultCode": "INCORRECT_KEY",
+                "resultMsg": "인증키 정보가 올바르지 않습니다.",
+            }
+        }
+        with pytest.raises(KongsiApiError, match="INCORRECT_KEY"):
+            extract_items(payload)
+
     def test_odcloud_style(self):
         assert extract_items({"data": [{"a": 1}], "currentCount": 1}) == [{"a": 1}]
 

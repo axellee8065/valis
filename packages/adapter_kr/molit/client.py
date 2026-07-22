@@ -24,7 +24,7 @@ from packages.adapter_kr.molit.xml_parser import (
 
 log = structlog.get_logger()
 
-APT_TRADE_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
+APT_TRADE_URL = "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
 MAX_ROWS_PER_PAGE = 1000
 RATE_LIMIT_SLEEP_S = 0.05  # ~20 req/s, safety margin under the 30/s dev quota
 

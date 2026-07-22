@@ -102,11 +102,17 @@ def extract_items(payload: dict) -> list[dict]:
             raise KongsiApiError(f"{err.get('code')}: {err.get('text') or err.get('message')}")
         raise KongsiApiError(str(err))
 
-    # VWorld ned/data style — the wrapper key varies by dataset; find "field"
+    # VWorld ned/data style — the wrapper key varies by dataset; find "field".
+    # Error responses nest resultCode INSIDE the wrapper, e.g.
+    # {"apartHousingPrices": {"resultCode": "INCORRECT_KEY", "resultMsg": "..."}}
     for value in payload.values():
-        if isinstance(value, dict) and "field" in value:
-            field = value["field"]
-            return [field] if isinstance(field, dict) else list(field)
+        if isinstance(value, dict):
+            code = str(value.get("resultCode", "")).strip()
+            if code and code not in {"00", "000", "0", "OK", "NORMAL SERVICE"}:
+                raise KongsiApiError(f"{code}: {value.get('resultMsg', '')}")
+            if "field" in value:
+                field = value["field"]
+                return [field] if isinstance(field, dict) else list(field)
 
     if "data" in payload:  # odcloud style
         return list(payload["data"])

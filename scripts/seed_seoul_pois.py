@@ -17,6 +17,8 @@ from packages.core.db.session import get_session_factory
 
 log = structlog.get_logger()
 
+# 서울시 역사마스터 정보 — 784 stations with coordinates (verified live 2026-07)
+# Fields: BLDN_ID, BLDN_NM (역명), ROUTE (노선), LAT, LOT
 SUBWAY_URL = "http://openapi.seoul.go.kr:8088/{key}/json/subwayStationMaster/1/1000/"
 
 
@@ -25,8 +27,11 @@ async def fetch_subway_stations(api_key: str) -> list[dict]:
         resp = await http.get(SUBWAY_URL.format(key=api_key))
         resp.raise_for_status()
         data = resp.json()
-    # Response shape: {"subwayStationMaster": {"row": [...]}}
+    # Response shape: {"subwayStationMaster": {"RESULT": {...}, "row": [...]}}
     outer = next(iter(data.values()))
+    result = outer.get("RESULT", {})
+    if result.get("CODE") not in {None, "INFO-000"}:
+        raise RuntimeError(f"Seoul API error {result.get('CODE')}: {result.get('MESSAGE')}")
     return outer.get("row", [])
 
 
@@ -41,9 +46,9 @@ async def main() -> None:
     inserted = 0
     async with get_session_factory()() as session:
         for r in rows:
-            name = r.get("STATN_NM") or r.get("station_nm") or ""
-            lat = r.get("CRDNT_Y") or r.get("lat")
-            lng = r.get("CRDNT_X") or r.get("lot")
+            name = r.get("BLDN_NM") or ""
+            lat = r.get("LAT")
+            lng = r.get("LOT")
             if not (name and lat and lng):
                 continue
             stmt = (
@@ -55,7 +60,7 @@ async def main() -> None:
                     name_original=name,
                     latitude=Decimal(str(lat)),
                     longitude=Decimal(str(lng)),
-                    metadata={"line": r.get("ROUTE_NM") or r.get("line_num")},
+                    metadata={"line": r.get("ROUTE"), "station_id": r.get("BLDN_ID")},
                 )
                 .on_conflict_do_nothing()
             )
