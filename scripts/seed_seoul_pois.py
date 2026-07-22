@@ -51,8 +51,10 @@ async def main() -> None:
             lng = r.get("LOT")
             if not (name and lat and lng):
                 continue
+            # NOTE: insert on __table__, not the ORM class — the "metadata" column
+            # name collides with the declarative class's MetaData attribute
             stmt = (
-                pg_insert(PointOfInterestRow)
+                pg_insert(PointOfInterestRow.__table__)
                 .values(
                     country_code="KR",
                     poi_type="SUBWAY_STATION",

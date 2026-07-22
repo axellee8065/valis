@@ -67,8 +67,12 @@ async def ingest_month(
             tx = to_transaction(raw, fx_krw_usd=fx_rate, ingested_at=now)
             prop = to_property(raw, ingested_at=now)
 
-            props[prop.global_id] = prop.model_dump(mode="json")
-            txs[tx.source_record_id] = tx.model_dump(mode="json")
+            # python-mode dump keeps date/datetime objects for asyncpg;
+            # JSONB fields must be JSON-safe, so re-dump those alone
+            prop_row = prop.model_dump()
+            prop_row["data_sources"] = prop.model_dump(mode="json")["data_sources"]
+            props[prop.global_id] = prop_row
+            txs[tx.source_record_id] = tx.model_dump()
             stats["fetched"] += 1
             stats["cancelled"] += int(tx.is_cancelled)
     except MolitParseError as exc:
