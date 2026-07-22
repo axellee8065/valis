@@ -90,6 +90,20 @@ def train_v2(
     return V2Model(booster=model, feature_cols=cols, categorical_cols=cat)
 
 
+def load_v2(model_dir: str | Path) -> V2Model:
+    """Load a saved v2 artifact (model.txt + feature_config.json)."""
+    import lightgbm as lgb  # lazy: heavy dep
+
+    model_dir = Path(model_dir)
+    cfg = json.loads((model_dir / "feature_config.json").read_text())
+    booster = lgb.Booster(model_file=str(model_dir / "model.txt"))
+    return V2Model(
+        booster=booster,
+        feature_cols=cfg["feature_cols"],
+        categorical_cols=cfg["categorical_cols"],
+    )
+
+
 def predict_v2(model: V2Model, df: pd.DataFrame) -> pd.Series:
     X = _prepare(df, model.feature_cols, model.categorical_cols)
     log_price = model.booster.predict(X)

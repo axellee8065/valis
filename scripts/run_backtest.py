@@ -50,18 +50,11 @@ async def main() -> None:
         holdout = holdout.copy()
         holdout["prediction"] = predict_v1(ms, holdout)
     else:
-        import lightgbm as lgb
-        import numpy as np
+        from packages.avm.models.v2_lightgbm import load_v2, predict_v2
 
-        booster = lgb.Booster(model_file=str(model_dir / "model.txt"))
-        import json
-
-        cfg = json.loads((model_dir / "feature_config.json").read_text())
-        X = holdout[cfg["feature_cols"]].copy()
-        for c in cfg["categorical_cols"]:
-            X[c] = X[c].astype("category")
+        model = load_v2(model_dir)
         holdout = holdout.copy()
-        holdout["prediction"] = np.exp(booster.predict(X))
+        holdout["prediction"] = predict_v2(model, holdout)
 
     baselines = {}
     wanted = {b.strip().upper() for b in args.include_baselines.split(",") if b.strip()}
