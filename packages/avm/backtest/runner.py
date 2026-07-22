@@ -69,7 +69,7 @@ def run_backtest(
         },
     }
     (out / "summary.json").write_text(
-        json.dumps(summary, indent=2, ensure_ascii=False, default=str)
+        json.dumps(summary, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
     )
 
     try:
