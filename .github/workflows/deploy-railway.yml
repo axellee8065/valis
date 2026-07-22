@@ -1,0 +1,61 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main, staging]
+
+concurrency:
+  group: railway-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  wait-for-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: python
+          ref: ${{ github.sha }}
+          timeoutSeconds: 900
+
+  deploy:
+    needs: wait-for-ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "env=production" >> $GITHUB_OUTPUT
+          else
+            echo "env=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy API service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service valis-api --environment ${{ steps.env.outputs.env }}
+
+      - name: Deploy ingest service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service valis-ingest --environment ${{ steps.env.outputs.env }}
+
+      - name: Health check
+        run: |
+          for i in {1..30}; do
+            if curl -fs https://api.valis.xyz/health; then
+              echo "Healthy"; exit 0
+            fi
+            sleep 10
+          done
+          echo "Health check failed"; exit 1

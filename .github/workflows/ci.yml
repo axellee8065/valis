@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: valis_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install
+        run: |
+          pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Format check (ruff)
+        run: ruff format --check .
+
+      - name: Type check (mypy)
+        run: mypy packages/core packages/avm
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/valis_test
+        run: alembic upgrade head
+
+      - name: Tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/valis_test
+        run: pytest --cov=packages --cov-report=xml --cov-fail-under=70
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+
+  move:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Sui CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/MystenLabs/sui/main/scripts/install.sh | bash
+          echo "$HOME/.sui/bin" >> $GITHUB_PATH
+
+      - name: Build Move package
+        working-directory: packages/move/valis
+        run: sui move build
+
+      - name: Move unit tests
+        working-directory: packages/move/valis
+        run: sui move test
+
+  live-smoke:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e ".[dev]"
+      - name: Smoke test MOLIT API
+        env:
+          MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
+        run: python scripts/smoke_molit.py

@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: valis
+      POSTGRES_PASSWORD: valis_dev
+      POSTGRES_DB: valis
+    ports:
+      - "5432:5432"
+    volumes:
+      - valis_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U valis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: valis
+      MINIO_ROOT_PASSWORD: valis_dev_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - valis_minio:/data
+
+volumes:
+  valis_pg:
+  valis_minio:
