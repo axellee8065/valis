@@ -32,3 +32,6 @@ packages/move/valis/build/
 
 # Node (for scripts)
 node_modules/
+
+# bkit local state
+.bkit/
