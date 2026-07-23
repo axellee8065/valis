@@ -169,13 +169,35 @@ event::emit(RepurchaseDisclosure {
 
 | Object | ID |
 |---|---|
-| Valis package (v3) | see `.env` `SUI_PACKAGE_ID` (upgraded with `collateral`) |
+| Valis package (v3, with `collateral`) | `0x7f8400996b4712aaf2b8a386415f0b6e1389dcc4b14aa182e841756d1d6ebdc0` |
 | ValuationFeed (shared) | `0xe76f7031e20c49971819158dc7ccf4086353533be32af950b15ad0e2db6e3454` |
-| Active attestations | 61 (Seoul apartments, confidence ≥ 85%) |
+| Active feed entries | 61 (Seoul apartments) |
 
-Worked example (live attestation, 강남구 소재):
-`confidence 9457bps`, `value $V` → haircut value `= V × 0.9457`,
-LTV 60% → `max_issuance = V × 0.9457 × 0.6`.
+### Live demo transactions (both paths exercised on-chain)
+
+**Pass — AUTO_ISSUE tier collateral** (성북구 아파트, 전용 59.79㎡, 1998년):
+tx `DUF2TRzWgoDWjK1h2iKuSFZyQXQX46c2JmUH5BsrsAei`
+
+| Field | Value |
+|---|---|
+| value | $457,043.96 |
+| confidence | 94.57% (≥ 85% floor) |
+| haircut value | $432,226.47 (= value × 0.9457) |
+| max issuance @ LTV 60% | **$259,335.88** |
+| eligible | ✅ true |
+
+**Refuse — below confidence floor** (도봉구 아파트, 전용 59.25㎡, 2005년):
+tx `goUApYkgLkgavzkE8dmdvaMCEfxNPAGx1Dx1JQxKi2j`
+
+| Field | Value |
+|---|---|
+| value | $409,191.08 |
+| confidence | 83.84% (< 85% floor) |
+| haircut value / max issuance | **$0 / $0** |
+| eligible | ❌ false — excessive uncertainty is refused, not priced |
+
+Both decisions are on-chain `CollateralChecked` events — the Sharia audit
+trail works exactly as designed.
 
 ---
 
