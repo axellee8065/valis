@@ -67,7 +67,7 @@ module valis::property_registry {
     }
 
     // === Entry: adapter registers a property ===
-    public entry fun register(
+    public fun register(
         adapter_cap: &CountryAdapterCap,
         adapter_registry: &AdapterRegistry,
         index: &mut PropertyIndex,

@@ -36,7 +36,7 @@ module valis::oracle_feed {
 
     /// The attestation holder publishes it to the feed.
     /// The feed keeps only the latest attestation per property.
-    public entry fun publish(
+    public fun publish(
         feed: &mut ValuationFeed,
         att: &AppraisalAttestation,
         clock: &Clock,
@@ -44,9 +44,11 @@ module valis::oracle_feed {
         assert!(attestation::is_valid(att, clock), errors::attestation_expired());
 
         let global_id = *attestation::property_global_id(att);
-        let entry = FeedEntry {
-            attestation_id: object::id(att),
-            value_usd_cents: attestation::value_usd_cents(att),
+        let attestation_id = object::id(att);
+        let value_usd_cents = attestation::value_usd_cents(att);
+        let feed_entry = FeedEntry {
+            attestation_id,
+            value_usd_cents,
             confidence_bps: attestation::confidence_bps(att),
             updated_at: clock.timestamp_ms(),
             expires_at: attestation::expires_at(att),
@@ -55,12 +57,12 @@ module valis::oracle_feed {
         if (feed.entries.contains(global_id)) {
             feed.entries.remove(global_id);
         };
-        feed.entries.add(global_id, entry);
+        feed.entries.add(global_id, feed_entry);
 
         event::emit(FeedUpdated {
             global_id,
-            attestation_id: entry.attestation_id,
-            value_usd_cents: entry.value_usd_cents,
+            attestation_id,
+            value_usd_cents,
         });
     }
 

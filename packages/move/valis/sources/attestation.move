@@ -62,7 +62,7 @@ module valis::attestation {
     }
 
     // === Entry: mint attestation ===
-    public entry fun issue(
+    public fun issue(
         cap: &IssuerCap,
         property: &Property,
         value_usd_cents: u64,
@@ -117,7 +117,7 @@ module valis::attestation {
         transfer::public_transfer(att, recipient);
     }
 
-    public entry fun revoke(
+    public fun revoke(
         _cap: &IssuerCap,
         att: &mut AppraisalAttestation,
         reason: vector<u8>,

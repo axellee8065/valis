@@ -52,7 +52,7 @@ module valis::country_adapter {
     }
 
     // === Entry: admin registers a new country adapter ===
-    public entry fun register_adapter(
+    public fun register_adapter(
         _admin: &ProtocolAdminCap,
         registry: &mut AdapterRegistry,
         country_code: vector<u8>,
@@ -77,7 +77,7 @@ module valis::country_adapter {
     }
 
     // === Entry: admin deactivates an adapter (registry-level revocation) ===
-    public entry fun deactivate(
+    public fun deactivate(
         _admin: &ProtocolAdminCap,
         registry: &mut AdapterRegistry,
         country_code: vector<u8>,
