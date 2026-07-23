@@ -128,6 +128,67 @@ def compute_expanding_index(df: pd.DataFrame) -> RepeatSalesIndex:
     return RepeatSalesIndex(values=values)
 
 
+GANGNAM_3GU = {"강남구", "서초구", "송파구"}
+MIN_GROUP_PAIRS = 2_000  # below this a group falls back to the citywide index
+
+
+def region_group(admin_level_2: pd.Series) -> pd.Series:
+    return pd.Series(
+        np.where(admin_level_2.isin(GANGNAM_3GU), "gangnam3", "other"),
+        index=admin_level_2.index,
+    )
+
+
+def compute_group_indices(
+    df: pd.DataFrame, group_col: str = "idx_group"
+) -> dict[str, RepeatSalesIndex]:
+    """Per-region expanding indices + citywide fallback under '__all__'.
+
+    Premium regions appreciate on their own trajectory (observed: 강남3구 bias
+    -8.6% under a citywide index) — one index per region group fixes that.
+    Groups with too few repeat pairs inherit the citywide index.
+    """
+    citywide = compute_expanding_index(df)
+    out: dict[str, RepeatSalesIndex] = {"__all__": citywide}
+    for group, g in df.groupby(group_col):
+        if len(build_repeat_pairs(g)) >= MIN_GROUP_PAIRS:
+            out[str(group)] = compute_expanding_index(g)
+        else:
+            out[str(group)] = citywide
+    return out
+
+
+def detrend_prices_grouped(
+    df: pd.DataFrame, indices: dict[str, RepeatSalesIndex], group_col: str = "idx_group"
+) -> pd.Series:
+    months = pd.to_datetime(df["transaction_date"]).dt.to_period("M").astype(str)
+    factors = pd.Series(
+        [
+            indices.get(g, indices["__all__"]).at(m)
+            for g, m in zip(df[group_col], months, strict=True)
+        ],
+        index=df.index,
+    )
+    return df["price"].astype(float) / factors
+
+
+def rescale_predictions_grouped(
+    detrended_pred: pd.Series,
+    df: pd.DataFrame,
+    indices: dict[str, RepeatSalesIndex],
+    group_col: str = "idx_group",
+) -> pd.Series:
+    months = pd.to_datetime(df["transaction_date"]).dt.to_period("M").astype(str)
+    factors = pd.Series(
+        [
+            indices.get(g, indices["__all__"]).at(m)
+            for g, m in zip(df[group_col], months, strict=True)
+        ],
+        index=df.index,
+    )
+    return detrended_pred * factors
+
+
 def detrend_prices(df: pd.DataFrame, index: RepeatSalesIndex) -> pd.Series:
     """price / index[month of transaction] — the v3 training target base."""
     months = pd.to_datetime(df["transaction_date"]).dt.to_period("M").astype(str)

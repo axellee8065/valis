@@ -91,13 +91,18 @@ async def main() -> None:
     # v3: detrend prices BEFORE feature engineering so rolling comparable
     # features live in the same stationary space as the target. Rescaling by
     # the index happens once, at prediction time — never double-counted.
-    index = None
+    indices = None
     if args.model == "v3":
-        from packages.avm.models.v3_time_adjust import compute_expanding_index, detrend_prices
+        from packages.avm.models.v3_time_adjust import (
+            compute_group_indices,
+            detrend_prices_grouped,
+            region_group,
+        )
 
-        log.info("computing_repeat_sales_index")
-        index = compute_expanding_index(df)
-        df = df.assign(price_nominal=df["price"], price=detrend_prices(df, index))
+        log.info("computing_repeat_sales_index", groups="gangnam3/other")
+        df = df.assign(idx_group=region_group(df["admin_level_2"]))
+        indices = compute_group_indices(df)
+        df = df.assign(price_nominal=df["price"], price=detrend_prices_grouped(df, indices))
 
     df = engineer(df)
     train, val, holdout = split_transactions(df, DEFAULT_SPLIT)
@@ -143,14 +148,16 @@ async def main() -> None:
     else:  # v3 = v2 + repeat-sales time adjustment (docs/03 §3.4)
         from packages.avm.backtest.metrics import compute_metrics
         from packages.avm.models.v2_lightgbm import predict_v2, save_v2, train_v2
-        from packages.avm.models.v3_time_adjust import rescale_predictions
+        from packages.avm.models.v3_time_adjust import rescale_predictions_grouped
 
         # df["price"] (and all rolling features) are already detrended above
         model = train_v2(train, val)
-        val_pred = rescale_predictions(predict_v2(model, val), val, index)
+        val_pred = rescale_predictions_grouped(predict_v2(model, val), val, indices)
         metrics = compute_metrics(val_pred.values, val["price_nominal"].astype(float).values)
         save_v2(model, out_dir, metrics.to_dict(), manifest)
-        (out_dir / "index.json").write_text(json.dumps(index.to_json(), indent=1))
+        (out_dir / "index.json").write_text(
+            json.dumps({k: v.to_json() for k, v in indices.items()}, indent=1)
+        )
 
     (out_dir / "training_data_manifest.json").write_text(json.dumps(manifest, indent=2))
     log.info("training_done", model_id=model_id, val_mdape=metrics.mdape)

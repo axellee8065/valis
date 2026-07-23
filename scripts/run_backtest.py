@@ -41,12 +41,17 @@ async def main() -> None:
 
     # v3: detrend BEFORE feature engineering (same transform as training —
     # rolling features and target live in stationary space)
-    index = None
+    indices = None
     if version >= 3:
-        from packages.avm.models.v3_time_adjust import compute_expanding_index, detrend_prices
+        from packages.avm.models.v3_time_adjust import (
+            compute_group_indices,
+            detrend_prices_grouped,
+            region_group,
+        )
 
-        index = compute_expanding_index(df)
-        df = df.assign(price_nominal=df["price"], price=detrend_prices(df, index))
+        df = df.assign(idx_group=region_group(df["admin_level_2"]))
+        indices = compute_group_indices(df)
+        df = df.assign(price_nominal=df["price"], price=detrend_prices_grouped(df, indices))
 
     df = engineer(df)
     _train, _val, holdout = split_transactions(df, DEFAULT_SPLIT)
@@ -67,9 +72,9 @@ async def main() -> None:
         pred = predict_v2(model, holdout)
         if version >= 3:
             # model predicts DETRENDED prices — rescale once at target month
-            from packages.avm.models.v3_time_adjust import rescale_predictions
+            from packages.avm.models.v3_time_adjust import rescale_predictions_grouped
 
-            pred = rescale_predictions(pred, holdout, index)
+            pred = rescale_predictions_grouped(pred, holdout, indices)
         holdout["prediction"] = pred
 
     baselines = {}
