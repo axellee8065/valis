@@ -331,7 +331,8 @@ function Tiers() {
     <section id="tiers" className="mx-auto max-w-[1200px] px-6 pb-24">
       <div className="max-w-[62ch]">
         <h2 className="display-lg" style={{ textWrap: "balance" }}>
-          숫자는 밀봉 홀드아웃에서 왔습니다
+          본 지표는 데이터 오염을 차단하기 위해 완전 격리된 검증
+          데이터(Holdout)로 산출한 결과입니다
         </h2>
         <p className="body-md mt-4" style={{ color: "var(--muted)" }}>
           12개월 홀드아웃(2025-07 ~ 2026-06, 거래 69,301건)은 학습·튜닝에 단 한
