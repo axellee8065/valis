@@ -78,6 +78,41 @@ module valis::attestation {
         recipient: address,
         ctx: &mut TxContext,
     ) {
+        let att = mint(
+            cap,
+            property,
+            value_usd_cents,
+            ci_lower_usd_cents,
+            ci_upper_usd_cents,
+            confidence_bps,
+            method,
+            model_id,
+            report_uri,
+            report_hash,
+            validity_ms,
+            clock,
+            ctx,
+        );
+        transfer::public_transfer(att, recipient);
+    }
+
+    /// Package-internal mint returning the object — lets `valis::batch`
+    /// register + attest + feed-publish in a single transaction.
+    public(package) fun mint(
+        cap: &IssuerCap,
+        property: &Property,
+        value_usd_cents: u64,
+        ci_lower_usd_cents: u64,
+        ci_upper_usd_cents: u64,
+        confidence_bps: u16,
+        method: u8,
+        model_id: vector<u8>,
+        report_uri: vector<u8>,
+        report_hash: vector<u8>,
+        validity_ms: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ): AppraisalAttestation {
         assert!(value_usd_cents > 0, errors::invalid_valuation());
         assert!(ci_lower_usd_cents <= value_usd_cents, errors::invalid_valuation());
         assert!(ci_upper_usd_cents >= value_usd_cents, errors::invalid_valuation());
@@ -114,7 +149,7 @@ module valis::attestation {
             model_id: att.model_id,
         });
 
-        transfer::public_transfer(att, recipient);
+        att
     }
 
     public fun revoke(

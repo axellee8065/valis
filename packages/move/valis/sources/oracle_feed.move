@@ -41,6 +41,16 @@ module valis::oracle_feed {
         att: &AppraisalAttestation,
         clock: &Clock,
     ) {
+        record(feed, att, clock);
+    }
+
+    /// Package-internal write — lets `valis::batch` feed-publish in the same
+    /// transaction that mints the attestation.
+    public(package) fun record(
+        feed: &mut ValuationFeed,
+        att: &AppraisalAttestation,
+        clock: &Clock,
+    ) {
         assert!(attestation::is_valid(att, clock), errors::attestation_expired());
 
         let global_id = *attestation::property_global_id(att);

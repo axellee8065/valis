@@ -86,6 +86,49 @@ module valis::property_registry {
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
+        let prop = create(
+            adapter_cap,
+            adapter_registry,
+            index,
+            global_id,
+            local_id_canonical,
+            property_type,
+            lat_e7,
+            lng_e7,
+            admin_1,
+            admin_2,
+            admin_3,
+            net_area_sqm_x100,
+            built_year,
+            floors_total,
+            floor_number,
+            clock,
+            ctx,
+        );
+        share(prop);
+    }
+
+    /// Package-internal create returning the unshared object — lets
+    /// `valis::batch` attach an attestation before sharing, in one tx.
+    public(package) fun create(
+        adapter_cap: &CountryAdapterCap,
+        adapter_registry: &AdapterRegistry,
+        index: &mut PropertyIndex,
+        global_id: vector<u8>,
+        local_id_canonical: vector<u8>,
+        property_type: vector<u8>,
+        lat_e7: u64,
+        lng_e7: u64,
+        admin_1: vector<u8>,
+        admin_2: vector<u8>,
+        admin_3: vector<u8>,
+        net_area_sqm_x100: u64,
+        built_year: u16,
+        floors_total: u16,
+        floor_number: u16,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ): Property {
         assert!(
             country_adapter::is_active(adapter_registry, adapter_cap),
             errors::adapter_inactive(),
@@ -131,7 +174,11 @@ module valis::property_registry {
             country_code,
         });
 
-        // Shared so anyone can reference it when attaching attestations.
+        prop
+    }
+
+    /// Shared so anyone can reference it when attaching attestations.
+    public(package) fun share(prop: Property) {
         transfer::share_object(prop);
     }
 
