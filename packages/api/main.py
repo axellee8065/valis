@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 
-from packages.api.routes import attestations, health, properties, valuation
+from packages.api.routes import attestations, health, properties, stats, valuation
 from packages.core.config import get_settings
 
 log = structlog.get_logger()
@@ -37,3 +37,4 @@ app.include_router(health.router)
 app.include_router(valuation.router, prefix="/v1")
 app.include_router(properties.router, prefix="/v1")
 app.include_router(attestations.router, prefix="/v1")
+app.include_router(stats.router, prefix="/v1")
