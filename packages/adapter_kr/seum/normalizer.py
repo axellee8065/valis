@@ -12,7 +12,10 @@ import structlog
 log = structlog.get_logger()
 
 # 주용도 코드 → property master hints (표제부 mainPurpsCd)
-APT_MAIN_PURPS_CODES = {"02001"}  # 아파트
+# Live API returns combined "02000 공동주택" strings; 020xx = 공동주택 family
+# (아파트/연립/다세대) — our property master is apartment-parcels, so the
+# family-level check is the correct gate.
+APT_MAIN_PURPS_PREFIX = "020"
 
 # 구조코드 매핑 (strctCd) — kept as raw code + name for AVM categorical use
 KNOWN_STRUCTURES = {
@@ -91,8 +94,13 @@ def to_property_enrichment(raw: dict) -> dict:
 
 
 def is_apartment(raw: dict) -> bool:
-    """True if the building register marks this as 아파트."""
-    code = str(raw.get("mainPurpsCd") or "").strip()
+    """True if the building register marks this as 공동주택 (incl. 아파트).
+
+    mainPurpsCd arrives either as a bare code ("02001") or combined with the
+    name ("02000 공동주택") — take the leading digits.
+    """
+    code = str(raw.get("mainPurpsCd") or "").strip().split()[0] if raw.get("mainPurpsCd") else ""
     if code:
-        return code in APT_MAIN_PURPS_CODES
-    return "아파트" in str(raw.get("mainPurpsCdNm") or "")
+        return code.startswith(APT_MAIN_PURPS_PREFIX)
+    name = str(raw.get("mainPurpsCdNm") or "")
+    return "아파트" in name or "공동주택" in name

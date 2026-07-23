@@ -47,3 +47,6 @@ def test_is_apartment(title_info):
     assert is_apartment({"mainPurpsCd": "01000"}) is False
     assert is_apartment({"mainPurpsCdNm": "아파트"}) is True
     assert is_apartment({}) is False
+    # live API combines code+name in one field (observed 2026-07-23)
+    assert is_apartment({"mainPurpsCd": "02000 공동주택"}) is True
+    assert is_apartment({"mainPurpsCd": "01000 단독주택"}) is False
