@@ -34,14 +34,24 @@ async def main() -> None:
     # Lazy import to avoid heavy deps when just checking CLI wiring
     from scripts.train_avm import engineer, load_training_frame
 
+    model_dir = Path(args.models_dir) / args.model_id
+    version = int(info["version"])
+
     df = await load_training_frame()
+
+    # v3: detrend BEFORE feature engineering (same transform as training —
+    # rolling features and target live in stationary space)
+    index = None
+    if version >= 3:
+        from packages.avm.models.v3_time_adjust import compute_expanding_index, detrend_prices
+
+        index = compute_expanding_index(df)
+        df = df.assign(price_nominal=df["price"], price=detrend_prices(df, index))
+
     df = engineer(df)
     _train, _val, holdout = split_transactions(df, DEFAULT_SPLIT)
     if holdout.empty:
         raise SystemExit("Holdout window has no transactions — ingest more data first.")
-
-    model_dir = Path(args.models_dir) / args.model_id
-    version = int(info["version"])
     if version == 1:
         from packages.avm.models.v1_hedonic import predict_v1
 
@@ -56,14 +66,9 @@ async def main() -> None:
         holdout = holdout.copy()
         pred = predict_v2(model, holdout)
         if version >= 3:
-            # v3: model predicts DETRENDED prices — rescale by the repeat-sales
-            # index at each holdout month (expanding estimate, leakage-safe)
-            from packages.avm.models.v3_time_adjust import (
-                compute_expanding_index,
-                rescale_predictions,
-            )
+            # model predicts DETRENDED prices — rescale once at target month
+            from packages.avm.models.v3_time_adjust import rescale_predictions
 
-            index = compute_expanding_index(df)
             pred = rescale_predictions(pred, holdout, index)
         holdout["prediction"] = pred
 
@@ -73,11 +78,13 @@ async def main() -> None:
         past = df[df["transaction_date"] < str(DEFAULT_SPLIT.holdout_start)]
         baselines["B2_complex_median"] = baseline_b2_complex_median(holdout, past)
 
-    holdout["price_krw"] = holdout["price"].astype(float)
+    # metrics are always against NOMINAL prices (v3's price col is detrended)
+    actual_col = "price_nominal" if version >= 3 else "price"
+    holdout["price_krw"] = holdout[actual_col].astype(float)
     result = run_backtest(
         holdout_df=holdout,
         pred_col="prediction",
-        actual_col="price",
+        actual_col=actual_col,
         model_id=args.model_id,
         split=DEFAULT_SPLIT,
         output_dir=out_dir,
