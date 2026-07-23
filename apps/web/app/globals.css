@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+/* ── Valis identity: obsidian ledger × bronze seal ─────────────── */
+:root {
+  --ground: #0c0b09;
+  --plane: #12110e;
+  --surface: #171612;
+  --raise: #1d1b16;
+  --line: rgba(244, 240, 230, 0.09);
+  --line-strong: rgba(244, 240, 230, 0.16);
+  --ink: #f2efe6;
+  --ink-2: #b8b4a6;
+  --muted: #7d796c;
+  --bronze: #c9a45a;
+  --bronze-bright: #e4c47e;
+  --bronze-dim: rgba(201, 164, 90, 0.14);
+  --good: #34c05e;
+  --warn: #e0a63a;
+  --crit: #e05252;
+  --chart-blue: #4a90e2;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.serif {
+  font-family: "Nanum Myeongjo", "Noto Serif KR", Georgia, "Times New Roman", serif;
+}
+.mono {
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+}
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ledger rules — the page's structural motif */
+.rule { border-top: 1px solid var(--line); }
+.rule-strong { border-top: 2px solid var(--bronze); }
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bronze);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink-2);
+  background: var(--plane);
+}
+.badge .pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .badge .pulse { animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52, 192, 94, 0.45); }
+    55% { box-shadow: 0 0 0 6px rgba(52, 192, 94, 0); }
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 11px 22px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.btn-primary {
+  background: var(--bronze);
+  color: #171408;
+}
+.btn-primary:hover { background: var(--bronze-bright); }
+.btn-ghost {
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+.btn-ghost:hover { border-color: var(--bronze); color: var(--bronze-bright); }
+
+.navlink {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  transition: color 0.15s ease;
+}
+.navlink:hover { color: var(--bronze-bright); }
+
+/* seal mark */
+.seal {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--bronze);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--bronze);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.addr {
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+table.ledger { width: 100%; border-collapse: collapse; }
+table.ledger th {
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+table.ledger td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+table.ledger tr:last-child td { border-bottom: none; }
+table.ledger tbody tr { transition: background 0.12s ease; }
+table.ledger tbody tr:hover { background: var(--raise); }
+
+.codeblock {
+  background: #0a0a08;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px 22px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  overflow-x: auto;
+}
+.codeblock .c { color: var(--muted); }
+.codeblock .k { color: var(--bronze); }
+.codeblock .s { color: #9ec97e; }
+.codeblock .f { color: var(--chart-blue); }
+
+::selection { background: rgba(201, 164, 90, 0.3); }
