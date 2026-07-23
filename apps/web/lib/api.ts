@@ -38,19 +38,34 @@ export const FALLBACK_STATS: Stats = {
   network: "sui:testnet",
 };
 
-export async function getStats(): Promise<{ stats: Stats; live: boolean }> {
+/** Fallback for the Dubai demo (country=AE) until first live fetch. */
+export const FALLBACK_STATS_AE: Stats = {
+  transactions: 569_551,
+  properties: 128_910,
+  complexes: 3_296,
+  active_attestations: 0,
+  latest_model_id: "avm-ae-dubai-apt-v1",
+  data_range: { from: "2003-06-02", to: "2024-08-22" },
+  network: "sui:testnet",
+};
+
+export async function getStats(
+  country?: string,
+): Promise<{ stats: Stats; live: boolean }> {
+  const qs = country ? `?country=${country}` : "";
   try {
-    const res = await fetch(`${API}/v1/stats`, { next: { revalidate: 120 } });
+    const res = await fetch(`${API}/v1/stats${qs}`, { next: { revalidate: 120 } });
     if (!res.ok) throw new Error(String(res.status));
     return { stats: (await res.json()) as Stats, live: true };
   } catch {
-    return { stats: FALLBACK_STATS, live: false };
+    return { stats: country === "AE" ? FALLBACK_STATS_AE : FALLBACK_STATS, live: false };
   }
 }
 
-export async function getAttestations(): Promise<Attestation[]> {
+export async function getAttestations(country?: string): Promise<Attestation[]> {
+  const qs = country ? `&country=${country}` : "";
   try {
-    const res = await fetch(`${API}/v1/attestations?limit=8`, {
+    const res = await fetch(`${API}/v1/attestations?limit=8${qs}`, {
       next: { revalidate: 120 },
     });
     if (!res.ok) throw new Error(String(res.status));

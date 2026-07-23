@@ -25,6 +25,12 @@ const CHAIN = {
 };
 
 export default async function Home() {
+  // Dubai × Sukuk demo mode (docs/08): DEMO_MARKET=AE swaps the whole page.
+  // The Korea site below stays intact — remove the env var to restore it.
+  if (process.env.DEMO_MARKET === "AE") {
+    const { default: DubaiDemo } = await import("./dubai-demo");
+    return <DubaiDemo />;
+  }
   const [{ stats, live }, attestations] = await Promise.all([
     getStats(),
     getAttestations(),

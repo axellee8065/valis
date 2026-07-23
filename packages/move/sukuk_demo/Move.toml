@@ -1,0 +1,9 @@
+[package]
+name = "sukuk_demo"
+edition = "2024.beta"
+
+[dependencies]
+valis = { local = "../valis" }
+
+[addresses]
+sukuk_demo = "0x0"
