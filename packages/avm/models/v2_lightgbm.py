@@ -35,7 +35,12 @@ V2_NUMERIC = [
     "net_area_sqm",
     "floor_number",
     "floor_ratio",
+    "is_top_floor",
+    "is_ground_floor",
     "age_years",
+    "units_in_building",  # 대단지 프리미엄 (세움터 enrichment)
+    "is_large_complex",
+    "floors_total",
     "complex_median_ppm_365d",
     "complex_transaction_count_365d",
     "complex_ppm_std_365d",
