@@ -34,11 +34,24 @@ def parcel_of(canonical: str) -> tuple[str, str, str, str, str] | None:
     return parts[1], parts[2], parts[3], parts[4], parts[5]  # sgg, umd, land, bon, bu
 
 
+SMALLINT_MAX = 32_767  # DB column bounds — clamp register anomalies
+
+
 def aggregate(records: list[dict]) -> dict:
-    """Parcel-level rollup over apartment buildings (동 단위 표제부)."""
-    apt = [to_property_enrichment(r) for r in records if is_apartment(r)]
-    if not apt:
+    """Parcel-level rollup over apartment buildings.
+
+    총괄표제부 (regstrKindCd=1, complex-wide record) is preferred when present;
+    otherwise per-동 표제부 (kind=3) are summed. Some registers repeat
+    complex-wide parking on every 동 — values are clamped to column bounds.
+    """
+    apt_records = [r for r in records if is_apartment(r)]
+    if not apt_records:
         return {}
+    master = [r for r in apt_records if str(r.get("regstrKindCd", "")).strip() == "1"]
+    use = master if master else apt_records
+    combine_units = sum if not master else max
+    apt = [to_property_enrichment(r) for r in use]
+
     agg: dict = {}
     units = [e["units_in_building"] for e in apt if "units_in_building" in e]
     floors = [e["floors_total"] for e in apt if "floors_total" in e]
@@ -46,15 +59,15 @@ def aggregate(records: list[dict]) -> dict:
     built = [e["built_year"] for e in apt if "built_year" in e]
     parking = [e["parking_spaces"] for e in apt if "parking_spaces" in e]
     if units:
-        agg["units_in_building"] = sum(units)  # 단지 총 세대수 (대단지 프리미엄 피처)
+        agg["units_in_building"] = combine_units(units)  # 단지 세대수 (대단지 피처)
     if floors:
-        agg["floors_total"] = max(floors)
+        agg["floors_total"] = min(max(floors), SMALLINT_MAX)
     if areas:
         agg["building_area_sqm"] = round(sum(areas), 2)
     if built:
         agg["built_year"] = min(built)
     if parking:
-        agg["parking_spaces"] = sum(parking)
+        agg["parking_spaces"] = min(max(parking) if master else sum(parking), SMALLINT_MAX)
     return agg
 
 
@@ -119,14 +132,25 @@ async def main() -> None:
                         empty += 1
                         continue
                     sets = ", ".join(f"{k} = COALESCE({k}, :{k})" for k in agg)
-                    await session.execute(
-                        text(
-                            f"""UPDATE properties SET {sets}, updated_at = NOW()
-                                WHERE local_id_canonical LIKE :prefix"""
-                        ),
-                        {**agg, "prefix": f"KR-{sgg}-{umd}-{land}-{bon}-{bu}-%"},
-                    )
-                    enriched += 1
+                    try:
+                        await session.execute(
+                            text(
+                                f"""UPDATE properties SET {sets}, updated_at = NOW()
+                                    WHERE local_id_canonical LIKE :prefix"""
+                            ),
+                            {**agg, "prefix": f"KR-{sgg}-{umd}-{land}-{bon}-{bu}-%"},
+                        )
+                        enriched += 1
+                    except Exception as exc:
+                        # one bad parcel must not poison the whole chunk
+                        await session.rollback()
+                        errors += 1
+                        log.warning(
+                            "seum_update_failed",
+                            parcel=f"{sgg}-{umd}-{bon}-{bu}",
+                            agg=agg,
+                            error=str(exc)[:120],
+                        )
                 await session.commit()
                 log.info(
                     "seum_progress",
