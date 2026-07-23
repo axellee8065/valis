@@ -82,7 +82,7 @@ def engineer(df: pd.DataFrame) -> pd.DataFrame:
 
 async def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", choices=["v1", "v2"], required=True)
+    parser.add_argument("--model", choices=["v1", "v2", "v3"], required=True)
     parser.add_argument("--output", default="models/")
     args = parser.parse_args()
 
@@ -120,7 +120,7 @@ async def main() -> None:
         with open(out_dir / "model.pkl", "wb") as f:
             pickle.dump(ms, f)
         (out_dir / "metrics.json").write_text(json.dumps(metrics.to_dict(), indent=2))
-    else:
+    elif args.model == "v2":
         from packages.avm.backtest.metrics import compute_metrics
         from packages.avm.models.v2_lightgbm import predict_v2, save_v2, train_v2
 
@@ -128,6 +128,25 @@ async def main() -> None:
         val_pred = predict_v2(model, val)
         metrics = compute_metrics(val_pred.values, val["price"].astype(float).values)
         save_v2(model, out_dir, metrics.to_dict(), manifest)
+    else:  # v3 = v2 + repeat-sales time adjustment (docs/03 §3.4)
+        from packages.avm.backtest.metrics import compute_metrics
+        from packages.avm.models.v2_lightgbm import predict_v2, save_v2, train_v2
+        from packages.avm.models.v3_time_adjust import (
+            compute_expanding_index,
+            detrend_prices,
+            rescale_predictions,
+        )
+
+        log.info("computing_repeat_sales_index")
+        index = compute_expanding_index(df)  # expanding → leakage-safe by construction
+        train = train.assign(price=detrend_prices(train, index))
+        val_detr = val.assign(price=detrend_prices(val, index))
+
+        model = train_v2(train, val_detr)
+        val_pred = rescale_predictions(predict_v2(model, val), val, index)
+        metrics = compute_metrics(val_pred.values, val["price"].astype(float).values)
+        save_v2(model, out_dir, metrics.to_dict(), manifest)
+        (out_dir / "index.json").write_text(json.dumps(index.to_json(), indent=1))
 
     (out_dir / "training_data_manifest.json").write_text(json.dumps(manifest, indent=2))
     log.info("training_done", model_id=model_id, val_mdape=metrics.mdape)

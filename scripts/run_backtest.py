@@ -54,7 +54,18 @@ async def main() -> None:
 
         model = load_v2(model_dir)
         holdout = holdout.copy()
-        holdout["prediction"] = predict_v2(model, holdout)
+        pred = predict_v2(model, holdout)
+        if version >= 3:
+            # v3: model predicts DETRENDED prices — rescale by the repeat-sales
+            # index at each holdout month (expanding estimate, leakage-safe)
+            from packages.avm.models.v3_time_adjust import (
+                compute_expanding_index,
+                rescale_predictions,
+            )
+
+            index = compute_expanding_index(df)
+            pred = rescale_predictions(pred, holdout, index)
+        holdout["prediction"] = pred
 
     baselines = {}
     wanted = {b.strip().upper() for b in args.include_baselines.split(",") if b.strip()}
