@@ -8,6 +8,7 @@ error metrics).
 from dataclasses import asdict, dataclass
 
 import numpy as np
+import numpy.typing as npt
 
 
 @dataclass(frozen=True)
@@ -46,7 +47,7 @@ def _skewness(x: np.ndarray) -> float:
     return float(np.mean(((x - m) / s) ** 3))
 
 
-def compute_metrics(pred, actual) -> BacktestMetrics:
+def compute_metrics(pred: "npt.ArrayLike", actual: "npt.ArrayLike") -> BacktestMetrics:
     pred_arr = np.asarray(pred, dtype=float)
     actual_arr = np.asarray(actual, dtype=float)
     n_total = len(pred_arr)
@@ -73,7 +74,9 @@ def compute_metrics(pred, actual) -> BacktestMetrics:
     )
 
 
-def ci_coverage(actual, ci_lower, ci_upper) -> float:
+def ci_coverage(
+    actual: "npt.ArrayLike", ci_lower: "npt.ArrayLike", ci_upper: "npt.ArrayLike"
+) -> float:
     """Coverage-95: % of actuals inside the predicted CI. Target 93–97%
     (lower → overconfident, higher → over-conservative)."""
     a = np.asarray(actual, dtype=float)
@@ -86,7 +89,9 @@ def ci_coverage(actual, ci_lower, ci_upper) -> float:
     return round(float(inside.mean()), 4)
 
 
-def median_ci_width(pred, ci_lower, ci_upper) -> float:
+def median_ci_width(
+    pred: "npt.ArrayLike", ci_lower: "npt.ArrayLike", ci_upper: "npt.ArrayLike"
+) -> float:
     """Median relative CI width. Target ≤ 20%."""
     p = np.asarray(pred, dtype=float)
     lo = np.asarray(ci_lower, dtype=float)

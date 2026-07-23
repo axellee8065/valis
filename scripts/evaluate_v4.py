@@ -165,7 +165,9 @@ async def main() -> None:
             sub["ci_lower"].values,
             sub["ci_upper"].values,
         )
-        width = median_ci_width(sub["prediction"].values, sub["ci_lower"].values, sub["ci_upper"].values)
+        width = median_ci_width(
+            sub["prediction"].values, sub["ci_lower"].values, sub["ci_upper"].values
+        )
         share = len(sub) / len(holdout)
         label = {"__issued__": "ISSUED (auto+rev)", "__all__": "ALL"}.get(tier, tier)
         print(
@@ -182,9 +184,7 @@ async def main() -> None:
 
     out_dir = Path(args.output or f"reports/v4_eval_{args.model_id}")
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "tier_analysis.json").write_text(
-        json.dumps(results, indent=2), encoding="utf-8"
-    )
+    (out_dir / "tier_analysis.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     (out_dir / "conformal.json").write_text(
         json.dumps(calibrator.to_json(), indent=2), encoding="utf-8"
     )

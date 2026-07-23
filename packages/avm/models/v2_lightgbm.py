@@ -7,6 +7,7 @@ Reproducibility: random_state=42, library versions recorded in the manifest.
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -44,7 +45,7 @@ V2_NUMERIC = [
 
 @dataclass
 class V2Model:
-    booster: object  # lightgbm.LGBMRegressor
+    booster: Any  # lightgbm.LGBMRegressor | lightgbm.Booster
     feature_cols: list[str]
     categorical_cols: list[str]
 

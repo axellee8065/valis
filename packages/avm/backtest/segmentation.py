@@ -38,7 +38,7 @@ COMPLEX_SIZE_BUCKETS = [
 
 
 def _bucketize(series: pd.Series, buckets: list[tuple]) -> pd.Series:
-    def assign(v):
+    def assign(v: float) -> str:
         if pd.isna(v):
             return "__missing__"
         for lo, hi, label in buckets:

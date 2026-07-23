@@ -5,6 +5,7 @@ One model per 자치구 (25 models for Seoul).
 """
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -22,7 +23,7 @@ V1_NUMERIC_FEATURES = [
 class HedonicModelSet:
     """One fitted linear model per district."""
 
-    models: dict[str, object] = field(default_factory=dict)  # district -> LinearRegression
+    models: dict[str, Any] = field(default_factory=dict)  # district -> LinearRegression
     feature_cols: list[str] = field(default_factory=list)
     medians: dict[str, pd.Series] = field(default_factory=dict)  # per-district imputation
 

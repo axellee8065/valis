@@ -27,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           cache: 'pip'
 
       - name: Install
@@ -65,8 +65,10 @@ jobs:
 
       - name: Install Sui CLI
         run: |
-          curl -fsSL https://raw.githubusercontent.com/MystenLabs/sui/main/scripts/install.sh | bash
-          echo "$HOME/.sui/bin" >> $GITHUB_PATH
+          mkdir -p "$HOME/sui-cli"
+          curl -sL https://github.com/MystenLabs/sui/releases/download/testnet-v1.76.0/sui-testnet-v1.76.0-ubuntu-x86_64.tgz \
+            | tar -xz -C "$HOME/sui-cli"
+          echo "$HOME/sui-cli" >> $GITHUB_PATH
 
       - name: Build Move package
         working-directory: packages/move/valis
@@ -83,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - run: pip install -e ".[dev]"
       - name: Smoke test MOLIT API
         env:

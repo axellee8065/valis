@@ -21,7 +21,7 @@ class TemporalSplit:
     holdout_start: date
     holdout_end: date
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         order = [
             self.train_start,
             self.train_end,
