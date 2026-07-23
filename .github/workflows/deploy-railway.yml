@@ -53,7 +53,7 @@ jobs:
       - name: Health check
         run: |
           for i in {1..30}; do
-            if curl -fs https://api.valis.xyz/health; then
+            if curl -fs https://valis-api-production.up.railway.app/health; then
               echo "Healthy"; exit 0
             fi
             sleep 10
